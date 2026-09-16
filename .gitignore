@@ -1,3 +1,1 @@
-.env
-__pycache__/
-*.pyc
+.env\n__pycache__/\n*.pyc\nguild_config.json\n
