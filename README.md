@@ -9,7 +9,7 @@ Commands:
 
 Railway variable:
 `DISCORD_TOKEN` = Discord bot token
-Optional: `UPDATE_INTERVAL_MINUTES` = `5`
+Optional: `UPDATE_INTERVAL_MINUTES` = `10`
 
 Bot permissions: View Channels, Send Messages, Embed Links, Read Message History.
 No Administrator required.
