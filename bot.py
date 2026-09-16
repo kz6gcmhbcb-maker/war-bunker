@@ -71,20 +71,14 @@ async def update(gid,cfg):
     ch=g.get_channel(int(cfg["channel_id"]))
     if not ch:return
     try:
-        msg=None
-        mid=cfg.get("message_id","0")
-        if mid and str(mid)!="0":
-            try:msg=await ch.fetch_message(int(mid))
-            except:pass
-        if not msg:
-            async for m in ch.history(limit=50):
-                if m.author.id==client.user.id and m.embeds and m.embeds[0].title=="⚡ FACTION WAR — LEADERBOARD":
-                    msg=m;break
-        data=await fetch(); em=embed(data)
-        if msg: await msg.edit(embed=em)
-        else: msg=await ch.send(embed=em)
-        cfg["message_id"]=str(msg.id);save()
-    except Exception as ex: print("Update error:",type(ex).__name__,ex)
+        data=await fetch()
+        em=embed(data)
+        msg=await ch.send(embed=em)
+        cfg["last_message_id"]=str(msg.id)
+        save()
+        print(f"Posted new leaderboard message in guild {gid}: {msg.id}")
+    except Exception as ex:
+        print("Update error:",type(ex).__name__,ex)
 
 @tree.command(name="setup",description="Set the WChronicles leaderboard channel.")
 @app_commands.describe(channel="Channel for the leaderboard.")
@@ -93,8 +87,8 @@ async def setup(interaction:discord.Interaction,channel:discord.TextChannel):
     if not interaction.user.guild_permissions.manage_guild:
         return await interaction.response.send_message("You need Manage Server permission.",ephemeral=True)
     gid=str(interaction.guild_id); old=configs.get(gid,{})
-    configs[gid]={"channel_id":str(channel.id),"message_id":old.get("message_id","0")};save()
-    await interaction.response.send_message(f"⚡ Leaderboard configured for {channel.mention}.",ephemeral=True)
+    configs[gid]={"channel_id":str(channel.id)};save()
+    await interaction.response.send_message(f"⚡ Leaderboard configured for {channel.mention}. A new leaderboard message will be posted every {INTERVAL} minutes.",ephemeral=True)
     await update(gid,configs[gid])
 
 @tree.command(name="status",description="Show War Bunker configuration.")
