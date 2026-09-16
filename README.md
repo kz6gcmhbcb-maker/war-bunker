@@ -1,4 +1,4 @@
-# War Bunker v3
+# War Bunker v4
 Multi-server WChronicles Discord leaderboard bot.
 
 Commands:
