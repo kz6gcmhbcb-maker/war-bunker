@@ -128,7 +128,15 @@ async def before(): await client.wait_until_ready()
 @client.event
 async def on_ready():
     load()
-    await tree.sync()
+    # Sync slash commands directly to every server for immediate availability.
+    # This avoids waiting for Discord's global command propagation.
+    for guild in client.guilds:
+        try:
+            tree.copy_global_to(guild=guild)
+            await tree.sync(guild=guild)
+            print(f"Commands synced to {guild.name} ({guild.id})")
+        except Exception as ex:
+            print("Command sync error:", guild.id, type(ex).__name__, ex)
     if not updater.is_running():updater.start()
     print("War Bunker v3 online as",client.user)
 
