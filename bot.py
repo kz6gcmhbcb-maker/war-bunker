@@ -421,20 +421,20 @@ async def setup(interaction:discord.Interaction,channel:discord.TextChannel,fact
     old=configs.get(gid,{})
     configs[gid]={"channel_id":str(channel.id),"faction":actual,"alerts":old.get("alerts",True)}
     save()
-    await interaction.response.send_message(f"⚡ War Bunker configured.
-Channel: {channel.mention}
-Tracked faction: **{actual}**
-Automatic updates: **every {INTERVAL} minutes**",ephemeral=True)
+    await interaction.response.send_message(
+        f"⚡ War Bunker configured.\nChannel: {channel.mention}\nTracked faction: **{actual}**\nAutomatic updates: **every {INTERVAL} minutes**",
+        ephemeral=True
+    )
     await update(gid,configs[gid])
 
 @tree.command(name="status",description="Show War Bunker configuration.")
 async def status(interaction:discord.Interaction):
     c=configs.get(str(interaction.guild_id))
     if not c:return await interaction.response.send_message("Not configured. Use `/setup`.",ephemeral=True)
-    await interaction.response.send_message(f"⚡ Channel: <#{c['channel_id']}>
-Tracked faction: **{c.get('faction','not set')}**
-Alerts: **{'ON' if c.get('alerts',True) else 'OFF'}**
-Update interval: **{INTERVAL} minutes**",ephemeral=True)
+    await interaction.response.send_message(
+        f"⚡ Channel: <#{c['channel_id']}>\nTracked faction: **{c.get('faction','not set')}**\nAlerts: **{'ON' if c.get('alerts',True) else 'OFF'}**\nUpdate interval: **{INTERVAL} minutes**",
+        ephemeral=True
+    )
 
 @tree.command(name="update",description="Update the leaderboard now.")
 async def update_now(interaction:discord.Interaction):
