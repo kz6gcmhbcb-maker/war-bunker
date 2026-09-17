@@ -1,1 +1,4 @@
-.env\n__pycache__/\n*.pyc\nguild_config.json\n
+__pycache__/
+*.pyc
+config.json
+.env

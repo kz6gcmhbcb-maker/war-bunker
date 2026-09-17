@@ -1,27 +1,29 @@
-# War Bunker v6.1 — Command Center
+# War Bunker v7 — EVENT DRIVEN
 
-Universal WChronicles Discord raid bot.
+The bot polls WChronicles in the background but DOES NOT post every minute.
+It posts only when the raid leaderboard changes.
 
-## Setup
-`/setup #channel faction:<name>` configures BOTH the automatic posting channel and the faction tracked by that server. The faction field has live autocomplete.
+Detected:
+- new attacks
+- faction rank changes
+- player rank changes
+- meaningful point/damage changes
 
-Each Discord server can select a different channel and faction.
+Each Discord server can configure its own channel and faction with:
+`/setup channel:#channel faction:<faction>`
 
-## Commands
-`/top5` — Top 5 players.
-`/top5 faction:<name>` — Top 5 for a faction.
-`/top10` — Top 10 players, optionally filtered.
-`/topfactions` — all factions.
-`/raid` — overall raid status.
-`/stats faction:<name>` — faction stats.
-`/gap` — gap to faction above.
-`/intel` — tactical view.
-`/status` — server configuration.
-`/update` — manual update.
-`/disable` — disable automatic updates.
+Commands:
+`/setup`, `/status`, `/update`, `/disable`, `/top5`, `/top10`,
+`/topfactions`, `/raid`, `/stats`, `/gap`, `/intel`.
 
-## Automation
-The bot posts a NEW leaderboard message every `UPDATE_INTERVAL_MINUTES`. If a server has a tracked faction, it also watches that faction for rank changes and major Points changes.
+The first poll after startup creates a baseline and intentionally sends no
+automatic message.
 
-## Railway variables
-`DISCORD_TOKEN` and `UPDATE_INTERVAL_MINUTES`.
+Duplicate command fix:
+commands are synced to guilds and legacy global commands are cleared.
+
+Railway:
+- DISCORD_TOKEN = existing token
+- POLL_SECONDS = optional, default 60
+
+Do not change/share the bot token.
