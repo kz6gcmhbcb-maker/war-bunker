@@ -280,6 +280,114 @@ async def topfactions(interaction: discord.Interaction):
             )
 
 
+
+async def faction_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        data=await fetch()
+        names=[str(f.get("factionName","")).strip() for f in data.get("factions",[])]
+    except Exception:
+        names=[]
+    q=current.lower().strip()
+    return [app_commands.Choice(name=n,value=n) for n in names if n and (not q or q in n.lower())][:25]
+
+def get_faction(data,name):
+    q=(name or "").strip().lower()
+    return next((f for f in data.get("factions",[]) if str(f.get("factionName","")).strip().lower()==q),None)
+
+def home_faction(gid):
+    return configs.get(str(gid),{}).get("faction")
+
+def stats_embed(data,name):
+    f=get_faction(data,name)
+    e=discord.Embed(title=f"⚡ {str(name).upper()} — STATS",color=0x42F5C5)
+    if not f:
+        e.description="Faction not found."; return e
+    e.description=f"Rank **#{f.get('rank','?')}**"
+    e.add_field(name="POINTS",value=num(f.get("points")),inline=True)
+    e.add_field(name="DAMAGE",value=num(f.get("damage")),inline=True)
+    e.add_field(name="ATTACKS",value=num(f.get("attacks")),inline=True)
+    e.add_field(name="WALKERS",value=num(f.get("players")),inline=True)
+    e.add_field(name="WINS",value=num(f.get("wins")),inline=True)
+    return e
+
+def gap_embed(data,name):
+    fs=sorted(data.get("factions",[]),key=lambda x:int(x.get("rank",999999) or 999999))
+    f=get_faction(data,name)
+    e=discord.Embed(title=f"⚡ {str(name).upper()} — GAP",color=0x42F5C5)
+    if not f: e.description="Faction not found."; return e
+    i=next((i for i,x in enumerate(fs) if x.get("factionName")==f.get("factionName")),None)
+    if i==0: e.description="Rank **#1** — no faction ahead."; return e
+    if i is None: e.description="Could not determine rank."; return e
+    a=fs[i-1]
+    e.description=f"Current: **#{f.get('rank','?')}**\nNext: **{a.get('factionName')}**\nPoints gap: **{num(max(0,int(a.get('points',0))-int(f.get('points',0))))}**"
+    return e
+
+def intel_embed(data,name):
+    f=get_faction(data,name)
+    e=discord.Embed(title=f"⚡ {str(name).upper()} — WAR INTEL",color=0x42F5C5)
+    if not f: e.description="Faction not found."; return e
+    e.description=f"Rank **#{f.get('rank','?')}** • {str(data.get('status','UNKNOWN')).upper()}"
+    e.add_field(name="FACTION",value=f"Points: **{num(f.get('points'))}**\nDamage: **{num(f.get('damage'))}**\nAttacks: **{num(f.get('attacks'))}**\nWalkers: **{num(f.get('players'))}**",inline=False)
+    fs=sorted(data.get("factions",[]),key=lambda x:int(x.get("rank",999999) or 999999))
+    i=next((i for i,x in enumerate(fs) if x.get("factionName")==f.get("factionName")),None)
+    if i and i>0:
+        a=fs[i-1]
+        e.add_field(name="NEXT TARGET",value=f"**{a.get('factionName')}**\nPoints gap: **{num(max(0,int(a.get('points',0))-int(f.get('points',0))))}**",inline=False)
+    return e
+
+@tree.command(name="raid",description="Show overall raid status.")
+async def raid(interaction: discord.Interaction):
+    await interaction.response.defer()
+    data=await fetch()
+    e=discord.Embed(title=f"⚡ {str(data.get('name','RAID')).upper()}",description=f"Status: **{data.get('status','Unknown')}**",color=0x42F5C5)
+    fs=data.get("factions",[])
+    e.add_field(name="FACTIONS",value=num(len(fs)),inline=True)
+    e.add_field(name="TOTAL POINTS",value=num(sum(int(x.get("points",0) or 0) for x in fs)),inline=True)
+    e.add_field(name="TOTAL DAMAGE",value=num(sum(int(x.get("damage",0) or 0) for x in fs)),inline=True)
+    e.add_field(name="TOTAL ATTACKS",value=num(sum(int(x.get("attacks",0) or 0) for x in fs)),inline=True)
+    await interaction.followup.send(embed=e)
+
+@tree.command(name="stats",description="Show stats for a faction.")
+@app_commands.describe(faction="Faction to inspect.")
+@app_commands.autocomplete(faction=faction_autocomplete)
+async def stats(interaction: discord.Interaction,faction: str):
+    await interaction.response.defer(); data=await fetch()
+    await interaction.followup.send(embed=stats_embed(data,faction))
+
+@tree.command(name="gap",description="Show a faction's gap to the rank above.")
+@app_commands.describe(faction="Optional; defaults to this server's tracked faction.")
+@app_commands.autocomplete(faction=faction_autocomplete)
+async def gap(interaction: discord.Interaction,faction: str=None):
+    faction=faction or home_faction(interaction.guild_id)
+    if not faction:
+        await interaction.response.send_message("Choose a faction or configure one with /setup.",ephemeral=True); return
+    await interaction.response.defer(); data=await fetch()
+    await interaction.followup.send(embed=gap_embed(data,faction))
+
+@tree.command(name="intel",description="Show tactical intel for a faction.")
+@app_commands.describe(faction="Optional; defaults to this server's tracked faction.")
+@app_commands.autocomplete(faction=faction_autocomplete)
+async def intel(interaction: discord.Interaction,faction: str=None):
+    faction=faction or home_faction(interaction.guild_id)
+    if not faction:
+        await interaction.response.send_message("Choose a faction or configure one with /setup.",ephemeral=True); return
+    await interaction.response.defer(); data=await fetch()
+    await interaction.followup.send(embed=intel_embed(data,faction))
+
+@tree.command(name="top10",description="Show top 10 players, optionally filtered by faction.")
+@app_commands.describe(faction="Optional faction filter.")
+@app_commands.autocomplete(faction=faction_autocomplete)
+async def top10(interaction: discord.Interaction,faction: str=None):
+    await interaction.response.defer(); data=await fetch()
+    entries=list(data.get("entries",[]))
+    if faction: entries=[x for x in entries if str(x.get("factionName","")).lower()==faction.lower()]
+    entries.sort(key=lambda x:int(x.get("factionPoints",x.get("points",0)) or 0),reverse=True)
+    e=discord.Embed(title="⚡ TOP 10 PLAYERS"+(f" — {faction.upper()}" if faction else ""),color=0x42F5C5)
+    for i,p in enumerate(entries[:10],1):
+        name=p.get("displayName") or p.get("username") or p.get("uid") or "Unknown"
+        e.add_field(name=f"#{i} {name}",value=f"Points: **{num(p.get('factionPoints',p.get('points',0)))}** • Damage: **{num(p.get('totalDamage',p.get('damage',0)))}** • Attacks: **{num(p.get('attacks'))}**",inline=False)
+    await interaction.followup.send(embed=e)
+
 @tree.command(name="setup",description="Set the WChronicles leaderboard channel.")
 @app_commands.describe(channel="Channel for the leaderboard.")
 @app_commands.default_permissions(manage_guild=True)
