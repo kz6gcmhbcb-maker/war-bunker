@@ -75,6 +75,23 @@ async def update(gid,cfg):
         em=embed(data)
         msg=await ch.send(embed=em)
         cfg["last_message_id"]=str(msg.id)
+        faction=cfg.get("faction")
+        if faction and cfg.get("alerts",True):
+            fs=data.get("factions",[])
+            f=next((x for x in fs if str(x.get("factionName","")).strip().lower()==str(faction).strip().lower()),None)
+            if f:
+                key=str(gid)+"::"+str(faction).lower()
+                cur={"rank":int(f.get("rank",0) or 0),"points":int(f.get("points",0) or 0)}
+                old=snapshots.get(key)
+                if old:
+                    if cur["rank"]!=old["rank"]:
+                        direction="UP" if cur["rank"]<old["rank"] else "DOWN"
+                        await ch.send(embed=discord.Embed(title=f"⚡ RANK CHANGE — {direction}",description=f"**{faction}** moved **#{old['rank']} → #{cur['rank']}**.",color=0x42F5C5))
+                    delta=cur["points"]-old["points"]
+                    if abs(delta)>=50000:
+                        sign="+" if delta>=0 else ""
+                        await ch.send(embed=discord.Embed(title="⚡ MAJOR POINT CHANGE",description=f"**{faction}**: {sign}{num(delta)} Points since last update.",color=0x42F5C5))
+                snapshots[key]=cur
         save()
         print(f"Posted new leaderboard message in guild {gid}: {msg.id}")
     except Exception as ex:
@@ -388,22 +405,36 @@ async def top10(interaction: discord.Interaction,faction: str=None):
         e.add_field(name=f"#{i} {name}",value=f"Points: **{num(p.get('factionPoints',p.get('points',0)))}** • Damage: **{num(p.get('totalDamage',p.get('damage',0)))}** • Attacks: **{num(p.get('attacks'))}**",inline=False)
     await interaction.followup.send(embed=e)
 
-@tree.command(name="setup",description="Set the WChronicles leaderboard channel.")
-@app_commands.describe(channel="Channel for the leaderboard.")
+@tree.command(name="setup",description="Set leaderboard channel and tracked faction.")
+@app_commands.describe(channel="Channel for automatic posts.", faction="Faction to track for this server.")
+@app_commands.autocomplete(faction=faction_autocomplete)
 @app_commands.default_permissions(manage_guild=True)
-async def setup(interaction:discord.Interaction,channel:discord.TextChannel):
+async def setup(interaction:discord.Interaction,channel:discord.TextChannel,faction:str):
     if not interaction.user.guild_permissions.manage_guild:
         return await interaction.response.send_message("You need Manage Server permission.",ephemeral=True)
-    gid=str(interaction.guild_id); old=configs.get(gid,{})
-    configs[gid]={"channel_id":str(channel.id)};save()
-    await interaction.response.send_message(f"⚡ Leaderboard configured for {channel.mention}. A new leaderboard message will be posted every {INTERVAL} minutes.",ephemeral=True)
+    data=await fetch()
+    names=faction_choices_from_data(data)
+    actual=next((n for n in names if n.lower()==faction.strip().lower()),None)
+    if not actual:
+        return await interaction.response.send_message("Faction not found. Please choose a faction from the autocomplete list.",ephemeral=True)
+    gid=str(interaction.guild_id)
+    old=configs.get(gid,{})
+    configs[gid]={"channel_id":str(channel.id),"faction":actual,"alerts":old.get("alerts",True)}
+    save()
+    await interaction.response.send_message(f"⚡ War Bunker configured.
+Channel: {channel.mention}
+Tracked faction: **{actual}**
+Automatic updates: **every {INTERVAL} minutes**",ephemeral=True)
     await update(gid,configs[gid])
 
 @tree.command(name="status",description="Show War Bunker configuration.")
 async def status(interaction:discord.Interaction):
     c=configs.get(str(interaction.guild_id))
     if not c:return await interaction.response.send_message("Not configured. Use `/setup`.",ephemeral=True)
-    await interaction.response.send_message(f"⚡ Channel: <#{c['channel_id']}>\nUpdate interval: **{INTERVAL} minutes**",ephemeral=True)
+    await interaction.response.send_message(f"⚡ Channel: <#{c['channel_id']}>
+Tracked faction: **{c.get('faction','not set')}**
+Alerts: **{'ON' if c.get('alerts',True) else 'OFF'}**
+Update interval: **{INTERVAL} minutes**",ephemeral=True)
 
 @tree.command(name="update",description="Update the leaderboard now.")
 async def update_now(interaction:discord.Interaction):

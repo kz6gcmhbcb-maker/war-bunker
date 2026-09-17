@@ -1,21 +1,27 @@
-# War Bunker v6 — Command Center
+# War Bunker v6.1 — Command Center
 
-Universal WChronicles raid bot for all factions.
+Universal WChronicles Discord raid bot.
 
-### Commands
-`/setup #channel faction:<name>` — configure the automatic channel and the faction tracked on that server.
-`/status` — configuration.
-`/update` — manual leaderboard post.
-`/disable` — disable automatic updates.
-`/top5` — top 5 players.
-`/top5 faction:<name>` — top 5 for a faction.
-`/top10` — top 10 players, optionally filtered.
+## Setup
+`/setup #channel faction:<name>` configures BOTH the automatic posting channel and the faction tracked by that server. The faction field has live autocomplete.
+
+Each Discord server can select a different channel and faction.
+
+## Commands
+`/top5` — Top 5 players.
+`/top5 faction:<name>` — Top 5 for a faction.
+`/top10` — Top 10 players, optionally filtered.
 `/topfactions` — all factions.
 `/raid` — overall raid status.
 `/stats faction:<name>` — faction stats.
-`/gap` — points gap to faction above; defaults to server's tracked faction.
-`/intel` — tactical faction view; defaults to server's tracked faction.
+`/gap` — gap to faction above.
+`/intel` — tactical view.
+`/status` — server configuration.
+`/update` — manual update.
+`/disable` — disable automatic updates.
 
-Each Discord server can choose its own channel and tracked faction. The same bot can serve all factions and multiple servers.
+## Automation
+The bot posts a NEW leaderboard message every `UPDATE_INTERVAL_MINUTES`. If a server has a tracked faction, it also watches that faction for rank changes and major Points changes.
 
-Railway variables: `DISCORD_TOKEN`, `UPDATE_INTERVAL_MINUTES`.
+## Railway variables
+`DISCORD_TOKEN` and `UPDATE_INTERVAL_MINUTES`.
