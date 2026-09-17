@@ -1,15 +1,22 @@
-# War Bunker v4
-Multi-server WChronicles Discord leaderboard bot.
+# War Bunker v5
 
-Commands:
-- `/setup #channel` — configure leaderboard channel (Manage Server required)
-- `/status` — show configuration
-- `/update` — update immediately
-- `/disable` — disable updates (Manage Server required)
+Discord bot for the WChronicles raid leaderboard.
 
-Railway variable:
-`DISCORD_TOKEN` = Discord bot token
-Optional: `UPDATE_INTERVAL_MINUTES` = `10`
+## Commands
+- `/setup #channel` — configure the leaderboard channel.
+- `/status` — show configuration.
+- `/update` — post the current faction leaderboard immediately.
+- `/disable` — disable automatic updates.
+- `/top5` — top 5 individual players across all factions.
+- `/top5 faction:<name>` — top 5 individual players from one selected faction.
+- `/topfactions` — show ALL factions (not Top 5).
 
-Bot permissions: View Channels, Send Messages, Embed Links, Read Message History.
-No Administrator required.
+The faction selector for `/top5` uses autocomplete and reads faction names from the live WChronicles API.
+
+Player Top 5 is sorted by Points, then Damage, then Attacks.
+
+The bot posts a NEW leaderboard message every configured interval; it does not edit old leaderboard messages.
+
+## Railway variables
+- `DISCORD_TOKEN` — your Discord bot token
+- `UPDATE_INTERVAL_MINUTES` — e.g. `5` or `10`
